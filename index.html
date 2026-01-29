@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>IBONIRIUM · Terrarium · EXP‑03 · Павутиння Зверху</title>
+<title>IBONIRIUM · Terrarium · EXP‑03 · Геометричне Павутиння</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 html, body {
@@ -17,10 +17,10 @@ canvas { position:fixed; inset:0; }
   position:fixed;
   bottom:12px; left:12px;
   font-family:monospace;
-  color:#9affc2;
+  color:#88ffcc;
   font-size:12px;
   line-height:1.4;
-  opacity:0.9;
+  opacity:0.85;
 }
 #panel {
   position:fixed;
@@ -30,7 +30,7 @@ canvas { position:fixed; inset:0; }
   font-size:12px;
   color:#c7ffd9;
   line-height:1.45;
-  background:linear-gradient(to left,rgba(0,0,0,0.6),transparent);
+  background:linear-gradient(to left,rgba(0,0,0,0.65),transparent);
   padding:10px 14px;
 }
 </style>
@@ -52,8 +52,8 @@ Target: 13 December
 
 <div id="panel">
 <b>СТАН ЕКСПЕРИМЕНТУ</b><br>
-Живий тераріум павутиння (вид зверху). Павутини реалістичної геометрії реагують на сонячні дані NOAA.<br>
-Павуки рухаються, змінюють павутину (розмір, густоту) та самі змінюються (розмір, швидкість) залежно від сонячної активності.<br><br>
+Геометричне павутиння (вид зверху). Чітка радіально-спіральна структура реагує на сонячні дані NOAA.<br>
+Більше радіусів, рівномірна спіраль, чиста геометрія — залежно від сонячної активності росте кількість елементів, розмір і щільність.<br><br>
 До <b>13 грудня</b> — фаза росту. Потім фіксація.
 </div>
 
@@ -74,25 +74,20 @@ function resize(){
 }
 addEventListener('resize', resize); resize();
 
-/* Зірки */
-const stars = Array.from({length:240},()=>({x:Math.random(),y:Math.random(),z:Math.random()}));
+/* Зірки — повільні */
+const stars = Array.from({length:300},()=>({x:Math.random(),y:Math.random(),z:Math.random()*0.8+0.2}));
 function drawStars(){
   sctx.clearRect(0,0,starCanvas.width,starCanvas.height);
   stars.forEach(st=>{
-    st.y += 0.00025*(1+st.z);
+    st.y += 0.00008 * st.z;
     if(st.y>1) st.y=0;
-    sctx.globalAlpha = 0.3 + st.z*0.6;
-    sctx.fillStyle="#fff";
+    sctx.globalAlpha = 0.25 + st.z*0.4;
+    sctx.fillStyle="#ddd";
     sctx.beginPath();
-    sctx.arc(st.x*starCanvas.width, st.y*starCanvas.height, st.z*1.4, 0, Math.PI*2);
+    sctx.arc(st.x*starCanvas.width, st.y*starCanvas.height, st.z*1.1, 0, Math.PI*2);
     sctx.fill();
   });
   sctx.globalAlpha=1;
-}
-
-/* Шум для випадковості */
-function noise(x, y) {
-  return Math.sin(x*12.989 + y*78.233) * 43758.5453 % 1;
 }
 
 /* NOAA */
@@ -106,106 +101,102 @@ async function updateSolar(){
     const d = await r.json();
     const l = d[d.length-1];
     solarSSN = l.predicted_ssn;
-    solarFactor = Math.min(3.5, 0.6 + solarSSN/110);
-    activity = solarFactor * (0.7 + Math.random()*0.3);
+    solarFactor = Math.min(4, 0.7 + solarSSN/100);
+    activity = solarFactor * (0.6 + Math.random()*0.4);
     
     document.getElementById('ssn').textContent = solarSSN.toFixed(1);
     document.getElementById('sf').textContent  = solarFactor.toFixed(2);
     document.getElementById('ge').textContent  = activity.toFixed(2);
   }catch(e){
-    solarFactor = 1;
+    solarFactor = 1.2;
   }
 }
 updateSolar(); setInterval(updateSolar, 1800000);
 
-/* Павутина + павук (вид зверху, реалістична геометрія) */
-class SpiderWeb {
+/* Геометрична павутина */
+class GeometricWeb {
   constructor(x, y) {
-    this.centerX = x;
-    this.centerY = y;
-    this.stage = 0;
-    this.max   = 20 + Math.random()*15; // спіральні витки
+    this.cx = x;
+    this.cy = y;
+    this.growth = 0;
+    this.maxGrowth = 18 + Math.random()*12;
 
-    this.offset = Math.random(); // позиція павука
-    this.dir    = Math.random() < 0.5 ? 1 : -1;
-    this.speed  = (0.0002 + Math.random()*0.0006) * solarFactor; // швидкість залежить від сонця
+    this.offset = Math.random();
+    this.dir = Math.random() < 0.5 ? 1 : -1;
+    this.speed = 0.0003 + Math.random()*0.0005;
 
-    this.radialCount = 12 + Math.floor(solarFactor * 6); // густота радіалів
-    this.spiralDensity = 0.2 + solarFactor * 0.1; // густота спіралі
-    this.maxRadius = 80 + solarFactor * 40; // розмір павутини залежить від сонця
-    this.spiderSize = 3 + solarFactor * 2; // розмір павука залежить від сонця
+    this.radials = 16 + Math.floor(solarFactor * 8);     // більше радіусів при високій активності
+    this.maxRad  = 90 + solarFactor * 60;
+    this.spiralDensity = 0.18 + solarFactor * 0.08;      // щільніша спіраль
+    this.spiderSize = 2.5 + solarFactor * 1.2;
   }
 
   grow() {
-    if (this.stage < this.max) {
-      this.stage += 0.02 * solarFactor; // ріст залежить від сонця
+    if (this.growth < this.maxGrowth) {
+      this.growth += 0.028 * solarFactor;
     }
-    // оновлення параметрів залежно від сонця (змінюють павутину та павука)
-    this.radialCount = 12 + Math.floor(solarFactor * 6);
-    this.spiralDensity = 0.2 + solarFactor * 0.1;
-    this.maxRadius = 80 + solarFactor * 40;
-    this.spiderSize = 3 + solarFactor * 2;
-    this.speed = (0.0002 + Math.random()*0.0006) * solarFactor;
+    this.radials = 16 + Math.floor(solarFactor * 8);
+    this.maxRad  = 90 + solarFactor * 60;
+    this.spiralDensity = 0.18 + solarFactor * 0.08;
+    this.spiderSize = 2.5 + solarFactor * 1.2;
+    this.speed = (0.0003 + Math.random()*0.0005) * solarFactor * 1.3;
 
-    // рух павука
     this.offset += this.dir * this.speed;
     if (this.offset > 1) this.offset -= 1;
     if (this.offset < 0) this.offset += 1;
   }
 
   draw() {
-    // радіальні нитки (реалістичні, з легким вигином через шум)
-    tctx.strokeStyle = "rgba(220,220,240,0.6)";
-    tctx.lineWidth = 0.8;
-    for (let r = 0; r < this.radialCount; r++) {
-      const angle = r * (Math.PI * 2 / this.radialCount) + noise(r, this.centerX) * 0.1;
-      const endX = this.centerX + Math.cos(angle) * this.maxRadius;
-      const endY = this.centerY + Math.sin(angle) * this.maxRadius;
+    // Радіальні нитки — чіткі, рівномірні
+    tctx.strokeStyle = "rgba(200,220,255,0.45)";
+    tctx.lineWidth = 0.7;
+    for (let i = 0; i < this.radials; i++) {
+      const angle = i * (Math.PI * 2 / this.radials);
+      const ex = this.cx + Math.cos(angle) * this.maxRad;
+      const ey = this.cy + Math.sin(angle) * this.maxRad;
       tctx.beginPath();
-      tctx.moveTo(this.centerX, this.centerY);
-      tctx.lineTo(endX, endY);
+      tctx.moveTo(this.cx, this.cy);
+      tctx.lineTo(ex, ey);
       tctx.stroke();
     }
 
-    // спіраль (архімедова, реалістична)
-    tctx.strokeStyle = "rgba(210,210,230,0.7)";
+    // Спіраль — рівномірна (arithmetic / quasi-log), без сильного шуму
+    tctx.strokeStyle = "rgba(220,240,255,0.55)";
+    tctx.lineWidth = 0.6;
     tctx.beginPath();
     let prevX, prevY;
-    for (let s = 0; s < Math.min(this.stage, this.max) * 20; s++) {
-      const theta = s * this.spiralDensity;
-      const rad = theta / (Math.PI * 2) * (this.maxRadius / this.max);
-      const sx = this.centerX + Math.cos(theta) * rad + noise(s, this.centerY) * 1;
-      const sy = this.centerY + Math.sin(theta) * rad + noise(s, this.centerX) * 1;
-      if (s === 0) {
-        tctx.moveTo(sx, sy);
-      } else {
-        tctx.lineTo(sx, sy);
-      }
+    const steps = Math.min(this.growth, this.maxGrowth) * 25;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const radius = t * this.maxRad;
+      const angle = t * Math.PI * 2 * (this.spiralDensity * 15);  // багато витків
+      const x = this.cx + Math.cos(angle) * radius;
+      const y = this.cy + Math.sin(angle) * radius;
+      if (i === 0) tctx.moveTo(x, y);
+      else tctx.lineTo(x, y);
     }
     tctx.stroke();
 
-    // ─── ПАВУК ───
-    const spiderRad = this.offset * this.maxRadius * 0.8;
-    const spiderTheta = this.offset * Math.PI * 2 * 8; // кілька обертів
-    const px = this.centerX + Math.cos(spiderTheta) * spiderRad;
-    const py = this.centerY + Math.sin(spiderTheta) * spiderRad;
+    // Павук — маленький, геометричний, швидкий
+    const spiderR = this.offset * this.maxRad * 0.92;
+    const spiderA = this.offset * Math.PI * 2 * 12;  // багато обертів
+    const px = this.cx + Math.cos(spiderA) * spiderR;
+    const py = this.cy + Math.sin(spiderA) * spiderR;
 
-    const tremor = Math.sin(Date.now()*0.009 + this.centerX) * 0.8;
+    const tremor = Math.sin(Date.now() * 0.012 + this.cx) * 0.4;
 
-    // тіло
-    tctx.fillStyle = "rgba(18,15,28,0.97)";
+    tctx.fillStyle = "rgba(30,20,50,0.9)";
     tctx.beginPath();
-    tctx.arc(px + tremor*0.4, py + tremor*0.7, this.spiderSize, 0, Math.PI*2);
+    tctx.arc(px + tremor, py, this.spiderSize, 0, Math.PI*2);
     tctx.fill();
 
-    // лапки
-    tctx.strokeStyle = "rgba(35,30,50,0.92)";
-    tctx.lineWidth = 1.3;
+    tctx.strokeStyle = "rgba(60,50,90,0.7)";
+    tctx.lineWidth = 1;
     for (let l = 0; l < 8; l++) {
-      const legA = l * Math.PI * 2 / 8 + Math.PI/4 + tremor*0.25;
-      const lenLeg = 7 + Math.sin(Date.now()*0.004 + l*2 + this.centerX)*2.2 + this.spiderSize * 0.5;
-      const ex = px + Math.cos(legA) * lenLeg;
-      const ey = py + Math.sin(legA) * lenLeg;
+      const la = l * Math.PI * 2 / 8 + tremor * 0.2;
+      const len = this.spiderSize * 1.8 + Math.sin(Date.now()*0.006 + l)*1;
+      const ex = px + Math.cos(la) * len;
+      const ey = py + Math.sin(la) * len;
       tctx.beginPath();
       tctx.moveTo(px, py);
       tctx.lineTo(ex, ey);
@@ -214,37 +205,40 @@ class SpiderWeb {
   }
 }
 
-const webs = Array.from({length:25}, () => new SpiderWeb(Math.random() * tCanvas.width, Math.random() * tCanvas.height * 0.9));
+const webs = Array.from({length:22}, () => new GeometricWeb(
+  Math.random() * tCanvas.width,
+  Math.random() * tCanvas.height * 0.85 + tCanvas.height * 0.1
+));
 
 /* SENSORS */
 function drawSensors(){
   scx.clearRect(0,0,sensorCanvas.width,sensorCanvas.height);
   const baseY = 110;
 
-  scx.strokeStyle='rgba(120,255,180,0.2)';
+  scx.strokeStyle='rgba(120,255,180,0.15)';
   scx.beginPath(); scx.moveTo(0,baseY); scx.lineTo(sensorCanvas.width,baseY); scx.stroke();
 
-  scx.fillStyle='rgba(255,200,120,0.8)';
+  scx.fillStyle='rgba(255,220,140,0.75)';
   scx.beginPath();
-  scx.arc(80, baseY-40, 10 + solarFactor*4, 0, Math.PI*2);
+  scx.arc(80, baseY-40, 9 + solarFactor*4.5, 0, Math.PI*2);
   scx.fill();
   scx.fillStyle="#fff"; scx.font="11px monospace";
-  scx.fillText('☀ сонце', 50, baseY+20);
+  scx.fillText('☀ SSN', 55, baseY+20);
 
-  scx.strokeStyle='rgba(180,220,255,0.8)';
+  scx.strokeStyle='rgba(160,220,255,0.75)';
   scx.beginPath();
   scx.moveTo(160, baseY);
-  scx.lineTo(160, baseY - activity*28);
+  scx.lineTo(160, baseY - activity*32);
   scx.stroke();
-  scx.fillText('🕸 активність', 135, baseY+20);
+  scx.fillText('🧬 геометрія', 130, baseY+20);
 
   const now = new Date();
   const t = Math.min(1, (now - START_DATE) / (STOP_DATE - START_DATE));
-  scx.strokeStyle='rgba(180,180,255,0.7)';
+  scx.strokeStyle='rgba(200,200,255,0.6)';
   scx.beginPath();
   scx.arc(260, baseY, 30, -Math.PI/2, -Math.PI/2 + t*Math.PI*2);
   scx.stroke();
-  scx.fillText('⏳ цикл', 235, baseY+20);
+  scx.fillText('⏳', 245, baseY+20);
 }
 
 /* LOOP */
@@ -253,7 +247,7 @@ const STOP_DATE  = new Date('2026-12-13');
 
 function updateDay(){
   const now = new Date();
-  const day = Math.floor((now - START_DATE) / (86400000));
+  const day = Math.floor((now - START_DATE) / 86400000);
   document.getElementById('day').textContent = day >= 0 ? day : '–';
   document.getElementById('phase').textContent = now < STOP_DATE ? 'Growth' : 'Final';
 }
