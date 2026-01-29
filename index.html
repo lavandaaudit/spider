@@ -50,8 +50,15 @@ Target: 13 December
 </div>
 <div id="panel">
 <b>СТАН ЕКСПЕРИМЕНТУ</b><br>
-Геометричне павутиння (вид зверху). Чітка радіально-спіральна структура реагує на сонячні дані NOAA.<br>
-Більше радіусів, рівномірна спіраль, чиста геометрія — залежно від сонячної активності росте кількість елементів, розмір і щільність.<br><br>
+Геометричне павутиння (вид зверху). Чітка радіально-спіральна структура реагує на сонячні дані NOAA.<br><br>
+
+<b>Як сонячні явища впливають на павутиння:</b><br>
+• Вища SSN (кількість сонячних плям) → більше радіусів, щільніша спіраль, більший розмір павука<br>
+• Зростання сонячної активності → швидший ріст, більше витків спіралі, сильніше «дихання»<br>
+• Геомагнітні бурі / високий Kp → локальні пульсації та тремтіння окремих ділянок павутиння<br>
+• Спокійне сонце (низький SSN) → чиста, повільна, майже ідеальна геометрія<br>
+• Різкі спалахи (X/M-класу) → короткочасні «шоки» — спіраль стискається і розширюється<br><br>
+
 До <b>13 грудня</b> — фаза росту. Потім фіксація.
 </div>
 <script>
@@ -114,9 +121,9 @@ class GeometricWeb {
     this.offset = Math.random();
     this.dir = Math.random() < 0.5 ? 1 : -1;
     this.speed = 0.0003 + Math.random()*0.0005;
-    this.radials = 16 + Math.floor(solarFactor * 8); // більше радіусів при високій активності
+    this.radials = 16 + Math.floor(solarFactor * 8);
     this.maxRad = 90 + solarFactor * 60;
-    this.spiralDensity = 0.18 + solarFactor * 0.08; // щільніша спіраль
+    this.spiralDensity = 0.18 + solarFactor * 0.08;
     this.spiderSize = 2.5 + solarFactor * 1.2;
   }
   grow() {
@@ -146,11 +153,10 @@ class GeometricWeb {
       tctx.lineTo(ex, ey);
       tctx.stroke();
     }
-    // Спіраль — рівномірна (arithmetic / quasi-log), без сильного шуму
+    // Спіраль — рівномірна, з пульсацією біля павука
     tctx.strokeStyle = "rgba(220,240,255,0.55)";
     tctx.lineWidth = 0.6;
     tctx.beginPath();
-    let prevX, prevY;
     const steps = Math.min(this.growth, this.maxGrowth) * 25;
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
@@ -161,16 +167,16 @@ class GeometricWeb {
         const amp = (0.15 - tDiff) / 0.15 * (1.5 + activity);
         radius += Math.sin(Date.now() * 0.015 + t * 20) * amp;
       }
-      const angle = t * Math.PI * 2 * (this.spiralDensity * 15); // багато витків
+      const angle = t * Math.PI * 2 * (this.spiralDensity * 15);
       const x = this.cx + Math.cos(angle) * radius;
       const y = this.cy + Math.sin(angle) * radius;
       if (i === 0) tctx.moveTo(x, y);
       else tctx.lineTo(x, y);
     }
     tctx.stroke();
-    // Павук — маленький, геометричний, швидкий
+    // Павук
     const spiderR = this.offset * this.maxRad * 0.92 * breath;
-    const spiderA = this.offset * Math.PI * 2 * 12; // багато обертів
+    const spiderA = this.offset * Math.PI * 2 * 12;
     const px = this.cx + Math.cos(spiderA) * spiderR;
     const py = this.cy + Math.sin(spiderA) * spiderR;
     const tremor = Math.sin(Date.now() * 0.012 + this.cx) * 0.4;
